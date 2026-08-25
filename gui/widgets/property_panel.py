@@ -359,6 +359,14 @@ class PropertyPanel(QScrollArea):
         )
         form.addRow(self.tr("Section :"), QLabel(section_text))
         form.addRow(self.tr("Formulation :"), QLabel(str(plate.formulation)))
+        if not plate.is_structured_quad:
+            polygon_info = QLabel(
+                self.tr(
+                    "Contour polygonal : le maillage d'analyse sera disponible dans une prochaine étape."
+                )
+            )
+            polygon_info.setWordWrap(True)
+            form.addRow(self.tr("Type :"), polygon_info)
         effective_nx, effective_ny = effective_plate_mesh_divisions(self._project, plate)
         self._combo_plate_mesh_mode = QComboBox()
         self._combo_plate_mesh_mode.addItem(self.tr("Automatique"), PLATE_MESH_MODE_AUTO)
@@ -391,7 +399,7 @@ class PropertyPanel(QScrollArea):
             lambda *_args: self._update_plate_mesh_edit_state()
         )
         self._update_plate_mesh_edit_state()
-        if not self._plate_editing_enabled:
+        if not self._plate_editing_enabled or not plate.is_structured_quad:
             self._combo_plate_mesh_mode.setEnabled(False)
             self._spin_plate_mesh_nx.setEnabled(False)
             self._spin_plate_mesh_ny.setEnabled(False)

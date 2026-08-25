@@ -319,6 +319,19 @@ def test_build_analysis_model_uses_injected_mesh_generator() -> None:
     assert analysis_model.nodes[2].fixities == (1, 1, 1, 0, 0, 0)
 
 
+def test_build_analysis_model_rejects_polygon_before_calling_quad_mesher() -> None:
+    project = _plate_project_for_architecture_tests()
+    project.add_node(0.5, 0.5, 0.0)
+    project.plate_regions.clear()
+    project.add_plate_region((1, 2, 3, 5, 4), section_tag=1)
+    mesher = FakePlateMesher()
+
+    with pytest.raises(ValueError, match=r"P1"):
+        BuildAnalysisModel(mesher).execute(project)
+
+    assert mesher.calls == []
+
+
 def test_application_services_wraps_solver_use_cases() -> None:
     project = SimpleNamespace(loads={}, combinations={})
     manager = FakeSolverManager()

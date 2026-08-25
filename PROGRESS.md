@@ -1,6 +1,6 @@
 # HEXA Structures - Suivi d'avancement
 
-> État vérifié le 19 juillet 2026 sur la branche `codex/fix-extruded-section-colors`.
+> État vérifié le 25 août 2026 sur la branche `codex/polygonal-surface-modeling`.
 
 ---
 
@@ -9,12 +9,12 @@
 | Info | Valeur |
 |---|---|
 | Version applicative | 0.1.0 |
-| Dernière mise à jour | 19 juillet 2026 |
-| Dernier développement | Rotation 3D stable autour du centre du modele |
+| Dernière mise à jour | 25 août 2026 |
+| Dernier développement | Modélisation de surfaces polygonales planes |
 | Moteur principal | PyNite |
 | Moteur avancé optionnel | OpenSeesPy |
 | État global | Application fonctionnelle en consolidation : modélisation GUI, persistance SQLite, calcul multi-solveur, plaques macro, résultats, i18n, plugins et Section Builder avancé. |
-| Validation récente | `python -m pytest -q` : 614 réussis ; lint ciblé vert |
+| Validation récente | `python -m pytest -q` : 620 réussis ; lint ciblé vert |
 
 ---
 
@@ -54,6 +54,7 @@
 - Onglet Synthèse des résultats avec maxima/minima critiques et cas/combinaisons associés.
 - Enveloppes de barres affichées pour `N`, `Vy`, `Vz`, `T`, `My` et `Mz`.
 - Export CSV de l'onglet actif des tableaux de résultats.
+- Contours surfaciques plans convexes ou concaves, sauvegardés et affichés en 3D.
 
 ---
 
@@ -61,9 +62,10 @@
 
 1. Finaliser l'export PDF général des résultats et notes de calcul.
 2. Poursuivre la validation ergonomique des tableaux, synthèses et enveloppes.
-3. Stabiliser les résultats de cisaillement des plaques selon la formulation.
-4. Ajouter une convergence adaptative optionnelle pour le maillage des plaques.
-5. Étendre le Section Builder : import DXF, sections composées et matériaux multiples.
-6. Ajouter progressivement les vérifications EC2/EC3.
-7. Fournir un exemple de plugin externe `connections.ec3` et un diagnostic des plugins.
-8. Poursuivre les validations analytiques et comparatives des deux solveurs.
+3. Ajouter le maillage triangulaire des surfaces polygonales et son mapping de résultats.
+4. Stabiliser les résultats de cisaillement des plaques selon la formulation.
+5. Ajouter une convergence adaptative optionnelle pour le maillage des plaques.
+6. Étendre le Section Builder : import DXF, sections composées et matériaux multiples.
+7. Ajouter progressivement les vérifications EC2/EC3.
+8. Fournir un exemple de plugin externe `connections.ec3` et un diagnostic des plugins.
+9. Poursuivre les validations analytiques et comparatives des deux solveurs.

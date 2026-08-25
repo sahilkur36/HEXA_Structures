@@ -6,6 +6,8 @@ import math
 
 import numpy as np
 
+from core.surface_geometry import surface_polygon_area
+
 from core.material_properties import material_mass_density_kg_m3
 from core.local_axes import local_axes_from_nodes
 
@@ -110,18 +112,12 @@ def surface_area_m2(project, surface) -> float:
         node = project.nodes.get(int(node_tag))
         if node is None:
             return 0.0
-        points.append(np.array([node.x, node.y, node.z], dtype=float))
+        points.append((float(node.x), float(node.y), float(node.z)))
 
     if len(points) < 3:
         return 0.0
 
-    origin = points[0]
-    area = 0.0
-    for idx in range(1, len(points) - 1):
-        vec_1 = points[idx] - origin
-        vec_2 = points[idx + 1] - origin
-        area += 0.5 * float(np.linalg.norm(np.cross(vec_1, vec_2)))
-    return area
+    return surface_polygon_area(points)
 
 
 def surface_self_weight_kn_m2(project, surface) -> float:

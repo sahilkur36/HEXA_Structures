@@ -86,16 +86,20 @@ Les travaux en cours portent surtout sur :
 
 ## Limites actuelles des plaques
 
-Les plaques rectangulaires/quadrangulaires planes sont supportees de maniere
-experimentale via un maillage quadrangulaire regulier. L'utilisateur manipule
-une plaque macro a 4 noeuds ; avant calcul OpenSeesPy, HEXA genere un maillage
-interne invisible dans l'arbre principal du modele. Le mode de maillage par
+Les surfaces planes peuvent etre modelisees avec un contour simple convexe ou
+concave, sans ouverture, puis sauvegardees, chargees et affichees dans la vue 3D.
+Le contour est ferme par un nouveau clic sur son premier sommet ou par clic droit.
+
+Le calcul reste experimental et limite aux plaques macro quadrangulaires : avant
+calcul OpenSeesPy, HEXA genere un maillage regulier interne invisible dans l'arbre
+principal du modele. Le mode de maillage par
 defaut est automatique : HEXA calcule une taille d'element cible selon les
 dimensions de la plaque, son epaisseur et la formulation choisie. Un mode
 utilisateur permet de figer explicitement `mesh_nx` et `mesh_ny`. Les ouvertures,
-tremies, contours quelconques et maillages triangulaires ne sont pas pris en
-charge a ce stade. Les cartes de contours plaque s'appuient sur ce maillage de
-calcul interne, regroupe par plaque macro pour le post-traitement.
+tremies et le maillage d'analyse des contours polygonaux ne sont pas pris en
+charge a ce stade. Une surface polygonale bloque donc explicitement le lancement
+du calcul au lieu d'etre approximee. Les cartes de contours plaque s'appuient sur
+le maillage quadrangulaire interne, regroupe par plaque macro pour le post-traitement.
 
 ## Architecture
 

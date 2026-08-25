@@ -41,6 +41,8 @@ def effective_plate_mesh_divisions(
     plate: "PlateRegionData",
 ) -> tuple[int, int]:
     """Handle effective plate mesh divisions."""
+    if not getattr(plate, "is_structured_quad", len(plate.corner_node_tags) == 4):
+        return max(1, int(plate.mesh_nx)), max(1, int(plate.mesh_ny))
     mode = normalize_plate_mesh_mode(getattr(plate, "mesh_mode", None))
     if mode == PLATE_MESH_MODE_USER:
         return max(1, int(plate.mesh_nx)), max(1, int(plate.mesh_ny))

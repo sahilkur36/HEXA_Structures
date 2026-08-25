@@ -32,6 +32,24 @@ def test_rectangular_section_polygon_uses_real_dimensions() -> None:
     assert math.isclose(float(polygon[:, 1].max() - polygon[:, 1].min()), 0.50)
 
 
+def test_concave_surface_extrusion_preserves_polygon_area() -> None:
+    polygon = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [4.0, 0.0, 0.0],
+            [4.0, 3.0, 0.0],
+            [2.0, 1.5, 0.0],
+            [0.0, 3.0, 0.0],
+        ],
+        dtype=float,
+    )
+
+    mesh = ModelView._build_surface_solid_mesh(polygon, thickness=0.20)
+
+    assert mesh is not None
+    assert mesh.volume == pytest.approx(9.0 * 0.20)
+
+
 def test_sectionproperties_section_polygon_delegates_to_display_type() -> None:
     polygon = ModelView._section_polygon_points(
         "sectionproperties",

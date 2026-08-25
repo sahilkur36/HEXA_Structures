@@ -4470,6 +4470,38 @@ Current diagrams are limited to vertical XZ and YZ planes.</translation>
         <source>Supprimer le matériau « {name} » ?</source>
         <translation>Delete material &quot;{name}&quot;?</translation>
     </message>
+    <message>
+        <source>Les contours polygonaux utilisent actuellement une section de type ShellMITC4, ShellDKGQ ou ShellNLDKGQ.</source>
+        <translation>Polygonal boundaries currently use a ShellMITC4, ShellDKGQ or ShellNLDKGQ section.</translation>
+    </message>
+    <message>
+        <source>Un contour polygonal nécessite au moins 3 nœuds.</source>
+        <translation>A polygonal boundary requires at least 3 nodes.</translation>
+    </message>
+    <message>
+        <source>Les arêtes du contour ne doivent pas se croiser.</source>
+        <translation>Boundary edges must not cross.</translation>
+    </message>
+    <message>
+        <source>Les nœuds choisis ne définissent pas un contour polygonal valide.</source>
+        <translation>The selected nodes do not define a valid polygonal boundary.</translation>
+    </message>
+    <message>
+        <source>Surface polygonale</source>
+        <translation>Polygonal surface</translation>
+    </message>
+    <message>
+        <source>Le maillage polygonal sera disponible dans une prochaine étape.</source>
+        <translation>Polygonal meshing will be available in a future step.</translation>
+    </message>
+    <message>
+        <source>Maillage polygonal requis</source>
+        <translation>Polygonal mesh required</translation>
+    </message>
+    <message>
+        <source>Les surfaces polygonales suivantes sont modélisées mais leur maillage d'analyse n'est pas encore disponible : {labels}.</source>
+        <translation>The following polygonal surfaces are modeled, but their analysis mesh is not available yet: {labels}.</translation>
+    </message>
 </context>
 <context>
     <name>ModelTree</name>
@@ -4845,6 +4877,18 @@ Current diagrams are limited to vertical XZ and YZ planes.</translation>
         <location filename="../gui/dialogs/plate_region_properties_dlg.py" line="307"/>
         <source>Aucune donnée</source>
         <translation>No data</translation>
+    </message>
+    <message>
+        <source>Plaque macro quadrangulaire</source>
+        <translation>Quadrilateral macro plate</translation>
+    </message>
+    <message>
+        <source>Surface polygonale</source>
+        <translation>Polygonal surface</translation>
+    </message>
+    <message>
+        <source>Le contour polygonal est enregistré dans le projet. Son maillage d'analyse sera disponible dans une prochaine étape.</source>
+        <translation>The polygonal boundary is saved in the project. Its analysis mesh will be available in a future step.</translation>
     </message>
 </context>
 <context>
@@ -5456,6 +5500,10 @@ to see its properties.</translation>
         <location filename="../gui/widgets/property_panel.py" line="1022"/>
         <source>Fermer</source>
         <translation>Close</translation>
+    </message>
+    <message>
+        <source>Contour polygonal : le maillage d'analyse sera disponible dans une prochaine étape.</source>
+        <translation>Polygonal boundary: analysis meshing will be available in a future step.</translation>
     </message>
 </context>
 <context>

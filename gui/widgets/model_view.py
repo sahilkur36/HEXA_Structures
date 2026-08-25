@@ -15,6 +15,10 @@ from vtkmodules.vtkRenderingCore import vtkTextActor
 
 from core.local_axes import local_axes_from_nodes
 from core.sections import TSection, get_profile
+from core.surface_geometry import (
+    SurfacePolygonGeometryError,
+    triangulate_surface_polygon,
+)
 
 if TYPE_CHECKING:
     from core.model_data import Grid3DData, ProjectModel, SurfaceElementData
@@ -127,6 +131,7 @@ class ModelView(QWidget):
         self._cursor_pick_enabled = False
         self._cursor_pick_snap_to_grid = False
         self._draw_start_point: tuple[float, float, float] | None = None
+        self._surface_preview_points: list[tuple[float, float, float]] = []
         self._hover_point: tuple[float, float, float] | None = None
         self._selected_nodes: set[int] = set()
         self._selected_elements: set[int] = set()
@@ -318,6 +323,7 @@ class ModelView(QWidget):
         self._update_selection_actors(render=False)
         if self._draw_mode_enabled and self._draw_start_point is not None:
             self.set_preview_start(self._draw_start_point)
+            self.set_surface_preview(self._surface_preview_points)
         elif self._draw_mode_enabled:
             self._update_hover_preview()
         else:
@@ -1247,11 +1253,27 @@ class ModelView(QWidget):
         vertices = np.vstack((top, bottom))
 
         node_count = len(polygon_points)
-        faces: list[int] = [node_count, *range(node_count)]
-        faces.extend([node_count, *range(2 * node_count - 1, node_count - 1, -1)])
+        try:
+            triangles = triangulate_surface_polygon(
+                [tuple(float(value) for value in point) for point in polygon_points]
+            )
+        except SurfacePolygonGeometryError:
+            return None
+
+        faces: list[int] = []
+        for first, second, third in triangles:
+            faces.extend([3, first, second, third])
+            faces.extend(
+                [
+                    3,
+                    node_count + third,
+                    node_count + second,
+                    node_count + first,
+                ]
+            )
         for idx in range(node_count):
             nxt = (idx + 1) % node_count
-            faces.extend([4, idx, nxt, node_count + nxt, node_count + idx])
+            faces.extend([4, idx, node_count + idx, node_count + nxt, nxt])
 
         mesh = pv.PolyData(vertices, faces=np.array(faces, dtype=np.int32))
         return mesh.triangulate().clean()
@@ -3011,13 +3033,45 @@ class ModelView(QWidget):
         else:
             self.plotter.render()
 
+    def set_surface_preview(
+        self,
+        points: list[tuple[float, float, float]],
+    ) -> None:
+        """Display the ordered boundary being drawn for a polygonal surface."""
+        self._surface_preview_points = [
+            tuple(float(value) for value in point)
+            for point in points
+        ]
+        self.plotter.remove_actor("surface_draw_preview", render=False)
+        if len(self._surface_preview_points) < 2:
+            self.plotter.render()
+            return
+
+        vertices = np.array(self._surface_preview_points, dtype=float)
+        lines: list[int] = []
+        for index in range(len(vertices) - 1):
+            lines.extend([2, index, index + 1])
+        if len(vertices) >= 3:
+            lines.extend([2, len(vertices) - 1, 0])
+        mesh = pv.PolyData(vertices, lines=np.array(lines, dtype=np.int32))
+        self.plotter.add_mesh(
+            mesh,
+            color=_COLORS["draw_start"],
+            line_width=4,
+            render=False,
+            name="surface_draw_preview",
+        )
+        self.plotter.render()
+
     def clear_drawing_state(self) -> None:
         """Clear drawing state."""
         self._draw_start_point = None
+        self._surface_preview_points = []
         self._hover_point = None
         self.plotter.remove_actor("draw_start", render=False)
         self.plotter.remove_actor("draw_hover", render=False)
         self.plotter.remove_actor("snap_pick", render=False)
+        self.plotter.remove_actor("surface_draw_preview", render=False)
         self.plotter.render()
 
     def clear_selection(self) -> None:

@@ -190,6 +190,28 @@ class TestProjectModel:
         plate = p.add_plate_region((1, 2, 3, 4), section_tag=1)
 
         assert plate.formulation == "ShellDKGQ"
+
+    def test_add_and_persist_polygonal_plate_region(self, tmp_path):
+        p = ProjectModel(name="Polygonal surface")
+        for point in (
+            (0.0, 0.0, 0.0),
+            (4.0, 0.0, 0.0),
+            (4.0, 3.0, 0.0),
+            (2.0, 1.5, 0.0),
+            (0.0, 3.0, 0.0),
+        ):
+            p.add_node(*point)
+        p.add_material("Beton C30", "concrete", "C30/37")
+        p.add_section("Dalle 20 cm", "surface", 1, properties={"thickness": 0.20})
+
+        plate = p.add_plate_region((1, 2, 3, 4, 5), section_tag=1)
+        path = tmp_path / "polygonal.hexa"
+        save_project(p, path)
+        loaded = load_project(path)
+
+        assert plate.boundary_node_tags == (1, 2, 3, 4, 5)
+        assert plate.is_structured_quad is False
+        assert loaded.plate_regions[1].boundary_node_tags == (1, 2, 3, 4, 5)
         assert plate.mesh_mode == "auto"
 
     def test_clear(self):

@@ -4,6 +4,11 @@
 
 ### Ajoute
 
+- Modelisation de surfaces polygonales planes, convexes ou concaves, avec dessin
+  point par point, fermeture explicite, persistance SQLite et affichage 3D.
+- Validation des contours surfaciques contre les doublons, points non coplanaires,
+  aires nulles et aretes croisees avant toute modification du projet.
+- Triangulation contrainte des contours polygonaux pour une extrusion 3D fidele.
 - Catalogue acier enrichi avec plus de 200 profiles europeens courants : IPE, HEA, HEB, HEM, UPN, UPE, CHS, SHS, RHS et cornieres.
 - Sections parametriques filaires dans la GUI : I/H, U, L, tube circulaire et tube rectangulaire.
 - Section Builder HEXA : dessin 2D point par point sur grille, accrochage, fermeture de contour, analyse polygonale simple et insertion dans les sections du projet.
@@ -42,6 +47,7 @@
 
 ### Validation
 
+- `python -m pytest -q` : 620 tests passes le 25 aout 2026.
 - `python -m pytest -q` : 614 tests passes le 19 juillet 2026.
 - `python -m pytest -q` : 595 tests passes le 11 juillet 2026.
 - `python -m pytest tests/test_section_builder_loading.py tests/test_main_window_toolbar.py -q` : 12 tests passes le 19 juillet 2026.

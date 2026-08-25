@@ -14,6 +14,7 @@ from core.material_properties import (
 )
 from core.sections import RectangularSection
 from core.self_weight import SELF_WEIGHT_LOAD_NAME, SELF_WEIGHT_LOAD_TYPE
+from core.surface_geometry import SurfacePolygonGeometryError, validate_surface_polygon
 
 
 SURFACE_FORMULATION_TYPES: dict[str, str] = {
@@ -419,12 +420,22 @@ class PlateRegionData:
 
     tag: int
     name: str
-    corner_node_tags: tuple[int, int, int, int]
+    corner_node_tags: tuple[int, ...]
     section_tag: int
     mesh_nx: int = 8
     mesh_ny: int = 8
     mesh_mode: str = PLATE_MESH_MODE_AUTO
     formulation: str = "ShellMITC4"
+
+    @property
+    def boundary_node_tags(self) -> tuple[int, ...]:
+        """Return the ordered user boundary of the plate region."""
+        return self.corner_node_tags
+
+    @property
+    def is_structured_quad(self) -> bool:
+        """Return whether the region supports the legacy structured quad mesh."""
+        return len(self.corner_node_tags) == 4
 
 
 @dataclass
@@ -717,13 +728,26 @@ class ProjectModel:
     ) -> PlateRegionData:
         """Add plate region."""
         corners = tuple(int(tag) for tag in corner_node_tags)
-        if len(corners) != 4:
-            raise ValueError("A plate region requires exactly 4 corner nodes.")
-        if len(set(corners)) != 4:
-            raise ValueError("Plate region corner nodes must be distinct.")
+        if len(corners) < 3:
+            raise ValueError("A plate region requires at least 3 boundary nodes.")
+        if len(set(corners)) != len(corners):
+            raise ValueError("Plate region boundary nodes must be distinct.")
         missing_nodes = [tag for tag in corners if tag not in self.nodes]
         if missing_nodes:
             raise ValueError(f"Plate region references missing node(s): {missing_nodes}.")
+        try:
+            validate_surface_polygon(
+                [
+                    (
+                        float(self.nodes[tag].x),
+                        float(self.nodes[tag].y),
+                        float(self.nodes[tag].z),
+                    )
+                    for tag in corners
+                ]
+            )
+        except SurfacePolygonGeometryError as exc:
+            raise ValueError(str(exc)) from exc
 
         explicit_mesh = mesh_nx is not None or mesh_ny is not None
         mode = normalize_plate_mesh_mode(
