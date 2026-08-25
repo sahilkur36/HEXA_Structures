@@ -23,6 +23,18 @@ class BuildAnalysisModel:
 
     def execute(self, project: "ProjectModel") -> "ProjectModel":
         """Return a calculation-ready copy of the user project."""
+        polygonal_plate_tags = [
+            int(plate.tag)
+            for plate in project.plate_regions.values()
+            if not plate.is_structured_quad
+        ]
+        if polygonal_plate_tags:
+            labels = ", ".join(f"P{tag}" for tag in polygonal_plate_tags)
+            raise ValueError(
+                "Polygonal surface analysis mesh is not available for plate "
+                f"region(s): {labels}."
+            )
+
         analysis_project = deepcopy(project)
         plate_intersection_reports = {
             int(plate.tag): detect_plate_intersections(project, plate)

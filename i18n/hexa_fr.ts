@@ -4470,6 +4470,38 @@ Les diagrammes actuels sont limités aux plans verticaux XZ et YZ.</translation>
         <source>Supprimer le matériau « {name} » ?</source>
         <translation>Supprimer le matériau « {name} » ?</translation>
     </message>
+    <message>
+        <source>Les contours polygonaux utilisent actuellement une section de type ShellMITC4, ShellDKGQ ou ShellNLDKGQ.</source>
+        <translation>Les contours polygonaux utilisent actuellement une section de type ShellMITC4, ShellDKGQ ou ShellNLDKGQ.</translation>
+    </message>
+    <message>
+        <source>Un contour polygonal nécessite au moins 3 nœuds.</source>
+        <translation>Un contour polygonal nécessite au moins 3 nœuds.</translation>
+    </message>
+    <message>
+        <source>Les arêtes du contour ne doivent pas se croiser.</source>
+        <translation>Les arêtes du contour ne doivent pas se croiser.</translation>
+    </message>
+    <message>
+        <source>Les nœuds choisis ne définissent pas un contour polygonal valide.</source>
+        <translation>Les nœuds choisis ne définissent pas un contour polygonal valide.</translation>
+    </message>
+    <message>
+        <source>Surface polygonale</source>
+        <translation>Surface polygonale</translation>
+    </message>
+    <message>
+        <source>Le maillage polygonal sera disponible dans une prochaine étape.</source>
+        <translation>Le maillage polygonal sera disponible dans une prochaine étape.</translation>
+    </message>
+    <message>
+        <source>Maillage polygonal requis</source>
+        <translation>Maillage polygonal requis</translation>
+    </message>
+    <message>
+        <source>Les surfaces polygonales suivantes sont modélisées mais leur maillage d'analyse n'est pas encore disponible : {labels}.</source>
+        <translation>Les surfaces polygonales suivantes sont modélisées mais leur maillage d'analyse n'est pas encore disponible : {labels}.</translation>
+    </message>
 </context>
 <context>
     <name>ModelTree</name>
@@ -4845,6 +4877,18 @@ Les diagrammes actuels sont limités aux plans verticaux XZ et YZ.</translation>
         <location filename="../gui/dialogs/plate_region_properties_dlg.py" line="307"/>
         <source>Aucune donnée</source>
         <translation>Aucune donnée</translation>
+    </message>
+    <message>
+        <source>Plaque macro quadrangulaire</source>
+        <translation>Plaque macro quadrangulaire</translation>
+    </message>
+    <message>
+        <source>Surface polygonale</source>
+        <translation>Surface polygonale</translation>
+    </message>
+    <message>
+        <source>Le contour polygonal est enregistré dans le projet. Son maillage d'analyse sera disponible dans une prochaine étape.</source>
+        <translation>Le contour polygonal est enregistré dans le projet. Son maillage d'analyse sera disponible dans une prochaine étape.</translation>
     </message>
 </context>
 <context>
@@ -5456,6 +5500,10 @@ pour voir ses propriétés.</translation>
         <location filename="../gui/widgets/property_panel.py" line="1022"/>
         <source>Fermer</source>
         <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Contour polygonal : le maillage d'analyse sera disponible dans une prochaine étape.</source>
+        <translation>Contour polygonal : le maillage d'analyse sera disponible dans une prochaine étape.</translation>
     </message>
 </context>
 <context>

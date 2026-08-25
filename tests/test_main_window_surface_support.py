@@ -966,7 +966,7 @@ def test_surface_result_support_uses_analysis_model_for_macro_plate() -> None:
 
 
 
-def test_draw_surface_from_points_creates_surface_after_fourth_pick() -> None:
+def test_draw_surface_from_points_closes_when_first_point_is_picked_again() -> None:
     _app()
     window = MainWindow.__new__(MainWindow)
     project = ProjectModel()
@@ -1011,6 +1011,9 @@ def test_draw_surface_from_points_creates_surface_after_fourth_pick() -> None:
         (-2.0, 3.5, 0.0),
     ):
         window._on_grid_point_picked(*point)
+
+    assert project.plate_regions == {}
+    window._on_grid_point_picked(0.0, 0.0, 0.0)
 
     assert mark_calls == [True]
     assert refresh_calls == [True]
@@ -1069,6 +1072,9 @@ def test_draw_surface_accepts_inclined_coplanar_quad() -> None:
     ):
         window._on_grid_point_picked(*point)
 
+    assert project.plate_regions == {}
+    window._on_surface_draw_finalize_requested()
+
     assert mark_calls == [True]
     assert refresh_calls == [True]
     assert project.surface_elements == {}
@@ -1078,7 +1084,7 @@ def test_draw_surface_accepts_inclined_coplanar_quad() -> None:
     assert any("Plaque P1" in message for message in logs)
 
 
-def test_surface_right_click_finalize_creates_surface_from_pending_points() -> None:
+def test_surface_right_click_finalize_creates_concave_polygon_from_pending_points() -> None:
     _app()
     window = MainWindow.__new__(MainWindow)
     project = ProjectModel()
@@ -1101,11 +1107,13 @@ def test_surface_right_click_finalize_creates_surface_from_pending_points() -> N
     window._draw_mode_kind = "surface"
     window._draw_surface_points = [
         (0.0, 0.0, 0.0),
-        (5.0, 0.0, 0.0),
-        (5.0, 4.0, 0.0),
+        (4.0, 0.0, 0.0),
+        (4.0, 3.0, 0.0),
+        (2.0, 1.5, 0.0),
+        (0.0, 3.0, 0.0),
     ]
     window._draw_surface_section_tag = 1
-    window._draw_start_point = (5.0, 4.0, 0.0)
+    window._draw_start_point = (0.0, 3.0, 0.0)
     window._surface_draw_saved_orthogonal_state = None
     window._selected_node_tags = []
     window._selected_element_tags = []
@@ -1127,7 +1135,7 @@ def test_surface_right_click_finalize_creates_surface_from_pending_points() -> N
     assert refresh_menu_calls
     assert project.surface_elements == {}
     assert 1 in project.plate_regions
-    assert project.plate_regions[1].corner_node_tags == (1, 2, 3, 4)
+    assert project.plate_regions[1].corner_node_tags == (1, 2, 3, 4, 5)
     assert window._draw_surface_points == []
     assert any("Plaque P1" in message for message in logs)
 
@@ -1162,7 +1170,7 @@ def test_surface_right_click_resets_partial_contour_before_third_point() -> None
     assert any("plaque" in message.lower() and "annule" in message.lower() for message in logs)
 
 
-def test_surface_right_click_finalize_requires_expected_point_count() -> None:
+def test_surface_right_click_finalize_rejects_collinear_polygon() -> None:
     _app()
     window = MainWindow.__new__(MainWindow)
     project = ProjectModel()
@@ -1208,7 +1216,7 @@ def test_surface_right_click_finalize_requires_expected_point_count() -> None:
     assert mark_calls == []
     assert refresh_calls == []
     assert project.surface_elements == {}
-    assert any("définir un plan" in message for message in logs)
+    assert any("contour" in message.lower() for message in logs)
 
 
 def test_toggle_draw_surface_keeps_orthogonal_mode_available() -> None:
@@ -1332,7 +1340,7 @@ def test_toggle_draw_surface_rejects_tri31_sections(monkeypatch) -> None:
     assert window._draw_mode_kind is None
     assert window.act_draw_surface.isChecked() is False
     assert window.act_draw_orthogonal.isChecked() is False
-    assert any("quadrangulaires" in message for message in infos)
+    assert any("contours polygonaux" in message for message in infos)
 
 
 def test_copy_selected_surfaces_copies_geometry_and_selects_new_surface(monkeypatch) -> None:

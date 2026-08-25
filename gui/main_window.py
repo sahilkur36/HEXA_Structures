@@ -52,6 +52,7 @@ from core.model_data import (
 from core.plate_mesh_settings import effective_plate_mesh_divisions
 from core.selection_copy import build_copy_instance_points, selection_anchor_point
 from core.solvers import AnalysisFeature, SolverEngine, SolverManager
+from core.surface_geometry import SurfacePolygonGeometryError, validate_surface_polygon
 from gui.dialogs.plate_mesh_dlg import PlateMeshDialog
 from gui.dialogs.plate_region_properties_dlg import PlateRegionPropertiesDialog
 from gui.i18n.display_labels import (
@@ -2371,7 +2372,7 @@ class MainWindow(QMainWindow):
                 self.act_draw_surface.setChecked(False)
                 return
             sec = self.project.sections.get(section_tag)
-            if sec is None or not sec.is_surface or not self._supports_rectangular_surface_drawing(sec):
+            if sec is None or not sec.is_surface or not self._supports_polygonal_surface_drawing(sec):
                 self._restore_surface_draw_orthogonal_mode()
                 self.act_draw_surface.setChecked(False)
                 return
@@ -2403,9 +2404,10 @@ class MainWindow(QMainWindow):
         self._log(
             "Mode dessin de surfaces activé : "
             f"section « {sec.name if sec is not None else f'T{section_tag}'} », "
-            f"formulation {formulation}, cliquez 4 coins coplanaires, même sur un plan incliné. "
-            "Clic droit annule un contour incomplet ; après 3 coins, il ferme automatiquement "
-            "la plaque en parallélogramme."
+            f"formulation {formulation}, cliquez les sommets successifs d'un contour coplanaire, "
+            "y compris sur un plan incliné. "
+            "Cliquez à nouveau le premier sommet ou utilisez le clic droit après au moins "
+            "3 sommets pour fermer la surface."
         )
 
     def _cancel_bar_drawing(self) -> None:
@@ -2434,8 +2436,12 @@ class MainWindow(QMainWindow):
         self._draw_start_point = None
         if self.model_view is not None:
             self.model_view.set_preview_start(None)
+            if hasattr(self.model_view, "set_surface_preview"):
+                self.model_view.set_surface_preview([])
         if getattr(self, "secondary_view", None) is not None and hasattr(self.secondary_view, "set_preview_start"):
             self.secondary_view.set_preview_start(None)
+            if hasattr(self.secondary_view, "set_surface_preview"):
+                self.secondary_view.set_surface_preview([])
         self._refresh_model_management_menus()
 
     def _lock_surface_draw_orthogonal_mode(self) -> None:
@@ -2460,8 +2466,8 @@ class MainWindow(QMainWindow):
             action.setChecked(bool(saved_state))
         self._surface_draw_saved_orthogonal_state = None
 
-    def _supports_rectangular_surface_drawing(self, section) -> bool:
-        """Return whether rectangular surface drawing."""
+    def _supports_polygonal_surface_drawing(self, section) -> bool:
+        """Return whether a section can be assigned to a polygonal region."""
         formulation = section.surface_formulation
         if surface_expected_node_count(formulation) == 4:
             return True
@@ -2469,8 +2475,7 @@ class MainWindow(QMainWindow):
             self,
             self.tr("Dessin plaque temporairement limité"),
             self.tr(
-                "Le dessin interactif des plaques est provisoirement limité aux dalles et voiles "
-                "quadrangulaires. Choisissez une section de type ShellMITC4, "
+                "Les contours polygonaux utilisent actuellement une section de type ShellMITC4, "
                 "ShellDKGQ ou ShellNLDKGQ."
             ),
         )
@@ -2599,104 +2604,6 @@ class MainWindow(QMainWindow):
         relative = cls._surface_sub(point, origin)
         return cls._surface_dot(relative, u_axis), cls._surface_dot(relative, v_axis)
 
-    @staticmethod
-    def _surface_point_on_plane(
-        point: tuple[float, float, float],
-        plane: str,
-    ) -> tuple[float, float]:
-        """Handle surface point on plane."""
-        if plane == "XY":
-            return float(point[0]), float(point[1])
-        if plane == "XZ":
-            return float(point[0]), float(point[2])
-        return float(point[1]), float(point[2])
-
-    @staticmethod
-    def _surface_point_from_plane(
-        uv: tuple[float, float],
-        plane: str,
-        reference: tuple[float, float, float],
-    ) -> tuple[float, float, float]:
-        """Handle surface point from plane."""
-        if plane == "XY":
-            return float(uv[0]), float(uv[1]), float(reference[2])
-        if plane == "XZ":
-            return float(uv[0]), float(reference[1]), float(uv[1])
-        return float(reference[0]), float(uv[0]), float(uv[1])
-
-    @staticmethod
-    def _surface_axis_for_segment(
-        start: tuple[float, float],
-        end: tuple[float, float],
-        tol: float = 1e-9,
-    ) -> int | None:
-        """Handle surface axis for segment."""
-        du = float(end[0] - start[0])
-        dv = float(end[1] - start[1])
-        if abs(du) <= tol and abs(dv) <= tol:
-            return None
-        if abs(dv) <= tol and abs(du) > tol:
-            return 0
-        if abs(du) <= tol and abs(dv) > tol:
-            return 1
-        return None
-
-    def _surface_rectangle_closing_point(
-        self,
-        points: list[tuple[float, float, float]],
-        plane: str | None = None,
-    ) -> tuple[float, float, float] | None:
-        """Handle surface rectangle closing point."""
-        del plane
-        if len(points) != 3:
-            return None
-        if self._surface_normal_for_points(points) is None:
-            return None
-        p0, p1, p2 = points
-        return (
-            float(p0[0] + p2[0] - p1[0]),
-            float(p0[1] + p2[1] - p1[1]),
-            float(p0[2] + p2[2] - p1[2]),
-        )
-
-    @staticmethod
-    def _surface_distinct_coordinates(
-        values: list[float],
-        tol: float = 1e-9,
-    ) -> list[float]:
-        """Handle surface distinct coordinates."""
-        groups: list[float] = []
-        for value in sorted(float(v) for v in values):
-            if not groups or abs(value - groups[-1]) > tol:
-                groups.append(value)
-        return groups
-
-    def _surface_is_axis_aligned_rectangle(
-        self,
-        node_tags: list[int] | tuple[int, ...],
-        plane: str,
-    ) -> bool:
-        """Handle surface is axis aligned rectangle."""
-        if len(node_tags) != 4:
-            return False
-        projected = [
-            self._surface_point_on_plane(
-                (
-                    float(self.project.nodes[tag].x),
-                    float(self.project.nodes[tag].y),
-                    float(self.project.nodes[tag].z),
-                ),
-                plane,
-            )
-            for tag in node_tags
-        ]
-        u_values = [point[0] for point in projected]
-        v_values = [point[1] for point in projected]
-        return (
-            len(self._surface_distinct_coordinates(u_values)) == 2
-            and len(self._surface_distinct_coordinates(v_values)) == 2
-        )
-
     def _finalize_surface_drawing(self) -> bool:
         """Finalize surface drawing."""
         if self._draw_mode_kind != "surface":
@@ -2717,7 +2624,7 @@ class MainWindow(QMainWindow):
                 self.act_draw_surface.setChecked(False)
             return False
 
-        if not self._supports_rectangular_surface_drawing(sec):
+        if not self._supports_polygonal_surface_drawing(sec):
             if getattr(self, "act_draw_surface", None) is not None:
                 self.act_draw_surface.setChecked(False)
             return False
@@ -2727,36 +2634,29 @@ class MainWindow(QMainWindow):
             self._log("Ajoutez au moins 3 points avant de créer la plaque.")
             return False
 
-        expected_count = surface_expected_node_count(sec.surface_formulation)
-        if expected_count == 4 and len(pending_points) == 3:
-            plane = self._surface_plane_for_points(pending_points)
-            closing_point = (
-                self._surface_rectangle_closing_point(pending_points, plane)
-                if plane is not None
-                else None
-            )
-            if closing_point is None:
-                self._log(
-                    "Les 3 premiers points doivent définir un plan pour fermer "
-                    "automatiquement la plaque."
+        try:
+            validate_surface_polygon(pending_points)
+        except SurfacePolygonGeometryError as exc:
+            messages = {
+                "polygon_crossing_edges": "Les arêtes du contour ne doivent pas se croiser.",
+                "polygon_not_coplanar": "Les sommets doivent rester dans un même plan.",
+                "polygon_duplicate_point": "Chaque sommet du contour doit être unique.",
+            }
+            self._log(
+                messages.get(
+                    exc.code,
+                    "Le contour ne définit pas une surface polygonale valide.",
                 )
-                return False
-            pending_points.append(closing_point)
-        if len(pending_points) < expected_count:
-            self._log(
-                f"La formulation {sec.surface_formulation} attend {expected_count} point(s) : "
-                f"il en manque {expected_count - len(pending_points)}."
-            )
-            return False
-        if len(pending_points) > expected_count:
-            self._log(
-                f"La formulation {sec.surface_formulation} ne prend actuellement en charge "
-                f"que {expected_count} point(s)."
             )
             return False
 
         node_tags = [self._ensure_node_at_point(draw_point) for draw_point in pending_points]
-        validation = self._validate_surface_definition(node_tags, section_tag)
+        validation = self._validate_surface_definition(
+            node_tags,
+            section_tag,
+            allow_polygon=True,
+            preserve_order=True,
+        )
         if validation is None:
             self._reset_surface_draw_points()
             return False
@@ -3302,6 +3202,12 @@ class MainWindow(QMainWindow):
 
     def _log_plate_intersection_diagnostic(self, plate) -> None:
         """Log non-blocking plate intersection diagnostics."""
+        if not plate.is_structured_quad:
+            self._log(
+                f"Surface polygonale P{plate.tag} : diagnostic d'intersections reporté "
+                "au maillage polygonal."
+            )
+            return
         try:
             report = detect_plate_intersections(self.project, plate)
         except ValueError as exc:
@@ -3361,6 +3267,8 @@ class MainWindow(QMainWindow):
         section_tag: int,
         *,
         exclude_surface_tag: int | None = None,
+        allow_polygon: bool = False,
+        preserve_order: bool = False,
     ) -> tuple[list[int], str, int | None] | None:
         """Validate surface definition."""
         sec = self.project.sections.get(section_tag)
@@ -3374,13 +3282,22 @@ class MainWindow(QMainWindow):
 
         normalized_node_tags = [int(tag) for tag in node_tags if int(tag) in self.project.nodes]
         expected_count = surface_expected_node_count(sec.surface_formulation)
-        if len(normalized_node_tags) != expected_count:
+        invalid_count = (
+            len(normalized_node_tags) < 3
+            if allow_polygon
+            else len(normalized_node_tags) != expected_count
+        )
+        if invalid_count:
             QMessageBox.warning(
                 self,
                 self.tr("Formulation incompatible"),
-                self.tr("La section {formulation} attend {count} nœud(s).").format(
-                    formulation=sec.surface_formulation,
-                    count=expected_count,
+                (
+                    self.tr("Un contour polygonal nécessite au moins 3 nœuds.")
+                    if allow_polygon
+                    else self.tr("La section {formulation} attend {count} nœud(s).").format(
+                        formulation=sec.surface_formulation,
+                        count=expected_count,
+                    )
                 ),
             )
             return None
@@ -3402,13 +3319,34 @@ class MainWindow(QMainWindow):
             )
             return None
 
-        ordered_node_tags = self._order_surface_node_tags(normalized_node_tags, plane)
-        area = self._surface_area_on_plane(ordered_node_tags, plane)
-        if area <= 1e-9:
+        ordered_node_tags = (
+            list(normalized_node_tags)
+            if preserve_order
+            else self._order_surface_node_tags(normalized_node_tags, plane)
+        )
+        points = [
+            (
+                float(self.project.nodes[tag].x),
+                float(self.project.nodes[tag].y),
+                float(self.project.nodes[tag].z),
+            )
+            for tag in ordered_node_tags
+        ]
+        try:
+            validate_surface_polygon(points)
+        except SurfacePolygonGeometryError as exc:
+            messages = {
+                "polygon_crossing_edges": self.tr("Les arêtes du contour ne doivent pas se croiser."),
+                "polygon_not_coplanar": self.tr("Les nœuds choisis doivent rester dans un même plan."),
+                "polygon_duplicate_point": self.tr("Chaque nœud d'une plaque doit être unique."),
+            }
             QMessageBox.warning(
                 self,
                 self.tr("Surface invalide"),
-                self.tr("Les nœuds choisis sont alignés ou ne définissent pas une plaque valide."),
+                messages.get(
+                    exc.code,
+                    self.tr("Les nœuds choisis ne définissent pas un contour polygonal valide."),
+                ),
             )
             return None
 
@@ -3470,15 +3408,6 @@ class MainWindow(QMainWindow):
                     )
                 )
                 continue
-            expected_count = surface_expected_node_count(sec.surface_formulation)
-            actual_count = len(plate.corner_node_tags)
-            if actual_count != expected_count:
-                issues.append(
-                    (
-                        plate.tag,
-                        f"P{plate.tag} a {actual_count} noeud(s), mais {sec.surface_formulation} attend {expected_count} noeud(s).",
-                    )
-                )
         return issues
 
     def _element_section_compatibility_issues(
@@ -3564,17 +3493,22 @@ class MainWindow(QMainWindow):
                 self.act_draw_surface.setChecked(False)
             return
 
-        if not self._supports_rectangular_surface_drawing(sec):
+        if not self._supports_polygonal_surface_drawing(sec):
             if getattr(self, "act_draw_surface", None) is not None:
                 self.act_draw_surface.setChecked(False)
             return
 
         point = self._constrain_draw_point(point)
+        if (
+            len(self._draw_surface_points) >= 3
+            and self._points_equal(self._draw_surface_points[0], point)
+        ):
+            self._finalize_surface_drawing()
+            return
         if any(self._points_equal(existing, point) for existing in self._draw_surface_points):
             self._log("Point déjà sélectionné pour la plaque en cours : choisissez une autre intersection.")
             return
 
-        expected_count = surface_expected_node_count(sec.surface_formulation)
         pending_points = [*self._draw_surface_points, point]
         plane = self._surface_plane_for_points(pending_points) if len(pending_points) >= 3 else None
         if len(pending_points) >= 3 and plane is None:
@@ -3587,21 +3521,20 @@ class MainWindow(QMainWindow):
             self.model_view.set_preview_start(point)
         if getattr(self, "secondary_view", None) is not None and hasattr(self.secondary_view, "set_preview_start"):
             self.secondary_view.set_preview_start(point)
-
-        if len(pending_points) < expected_count:
-            self._refresh_model_management_menus()
-            if len(pending_points) == 3 and expected_count == 4:
-                self._log(
-                    "3 coins de plaque enregistres : faites un 4e clic ou un clic droit "
-                    "pour fermer automatiquement en parallelogramme."
-                )
-                return
-            self._log(
-                f"Point plaque {len(pending_points)}/{expected_count} enregistré : "
-                f"({point[0]:.3f}, {point[1]:.3f}, {point[2]:.3f})."
-            )
-            return
-        self._finalize_surface_drawing()
+        if self.model_view is not None and hasattr(self.model_view, "set_surface_preview"):
+            self.model_view.set_surface_preview(pending_points)
+        if getattr(self, "secondary_view", None) is not None and hasattr(
+            self.secondary_view,
+            "set_surface_preview",
+        ):
+            self.secondary_view.set_surface_preview(pending_points)
+        self._refresh_model_management_menus()
+        self._log(
+            f"Sommet {len(pending_points)} enregistré : "
+            f"({point[0]:.3f}, {point[1]:.3f}, {point[2]:.3f})."
+        )
+        if len(pending_points) >= 3:
+            self._log("Cliquez le premier sommet ou faites un clic droit pour fermer la surface.")
 
     def _on_tree_node_selected(self, tag: int) -> None:
         """Handle tree node selected."""
@@ -3881,10 +3814,16 @@ class MainWindow(QMainWindow):
             plate = self.project.plate_regions[int(tag)]
             mesh_nx, mesh_ny = effective_plate_mesh_divisions(self.project, plate)
             mesh_mode = normalize_plate_mesh_mode(getattr(plate, "mesh_mode", None))
-            menu_plate = menu.addMenu(self.tr("Plaque macro"))
+            structured_mesh_available = plate.is_structured_quad
+            menu_plate = menu.addMenu(
+                self.tr("Plaque macro")
+                if structured_mesh_available
+                else self.tr("Surface polygonale")
+            )
         else:
             mesh_nx, mesh_ny = 1, 1
             mesh_mode = ""
+            structured_mesh_available = False
             menu_plate = menu.addMenu(self.tr("Plaque"))
 
         act_mesh_auto = menu_plate.addAction(self.tr("Maillage automatique"))
@@ -3893,10 +3832,14 @@ class MainWindow(QMainWindow):
         act_mesh_user = menu_plate.addAction(self.tr("Nombre de mailles..."))
         act_mesh_user.setCheckable(True)
         act_mesh_user.setChecked(mesh_mode == PLATE_MESH_MODE_USER)
-        if not is_macro_plate:
+        if not structured_mesh_available:
             for action in (act_mesh_auto, act_mesh_user):
                 action.setEnabled(False)
-                action.setToolTip(self.tr("Disponible uniquement pour une plaque macro."))
+                action.setToolTip(
+                    self.tr("Le maillage polygonal sera disponible dans une prochaine étape.")
+                    if is_macro_plate
+                    else self.tr("Disponible uniquement pour une plaque macro.")
+                )
         menu_plate.addSeparator()
         act_mesh_info = menu_plate.addAction(
             self.tr("Maillage retenu : {nx} x {ny}").format(nx=mesh_nx, ny=mesh_ny)
@@ -6408,6 +6351,29 @@ class MainWindow(QMainWindow):
                 + "\n\n"
                 + self.tr("Les éléments surfaciques ne peuvent être calculés qu'avec OpenSeesPy."),
             )
+            return
+
+        polygonal_plates = [
+            plate
+            for plate in self.project.plate_regions.values()
+            if not plate.is_structured_quad
+        ]
+        if polygonal_plates:
+            labels = ", ".join(f"P{plate.tag}" for plate in polygonal_plates[:6])
+            if len(polygonal_plates) > 6:
+                labels += f", ... (+{len(polygonal_plates) - 6})"
+            QMessageBox.warning(
+                self,
+                self.tr("Maillage polygonal requis"),
+                self.tr(
+                    "Les surfaces polygonales suivantes sont modélisées mais leur maillage "
+                    "d'analyse n'est pas encore disponible : {labels}."
+                ).format(labels=labels),
+            )
+            self._log(
+                "Analyse annulée : maillage polygonal requis pour " + labels + "."
+            )
+            self._select_surface_after_change(polygonal_plates[0].tag)
             return
 
         element_issues = self._element_section_compatibility_issues()
