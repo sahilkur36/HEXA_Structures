@@ -1,2 +1,5 @@
 # Optional advanced section workbench backend
 sectionproperties>=3.10,<4
+
+# Optional constrained triangular mesher for polygonal surface analysis
+cytriangle>=3,<4

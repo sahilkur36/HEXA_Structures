@@ -251,12 +251,6 @@ def _aggregate_plate_result(
         for tag in unique_node_tags
         if tag in displacements
     ]
-    surf_results = [
-        surface_results[tag]
-        for tag in surface_tags
-        if tag in surface_results
-    ]
-
     uz_min, uz_max = _min_max(value for _tag, value in uz_values)
     uz_min_node = min(uz_values, key=lambda item: item[1])[0] if uz_values else None
     uz_max_node = max(uz_values, key=lambda item: item[1])[0] if uz_values else None
@@ -406,6 +400,9 @@ def _edge_node_tags(
     mesh_ny: int,
 ) -> list[int]:
     edge = str(edge).strip()
+    boundary_nodes = getattr(mesh, "boundary_node_tags", {}).get(edge)
+    if boundary_nodes:
+        return [int(tag) for tag in boundary_nodes]
     if edge == "12":
         return [mesh.node_tags[(i, 0)] for i in range(int(mesh_nx) + 1)]
     if edge == "23":

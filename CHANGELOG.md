@@ -9,6 +9,10 @@
 - Validation des contours surfaciques contre les doublons, points non coplanaires,
   aires nulles et aretes croisees avant toute modification du projet.
 - Triangulation contrainte des contours polygonaux pour une extrusion 3D fidele.
+- Contrat de maillage d'analyse generique avec topologie explicite des cellules
+  et des bords, compatible avec les maillages quadrangulaires et triangulaires.
+- Mailleur triangulaire contraint des surfaces polygonales base sur `cytriangle`,
+  avec preservation des plans inclines, de l'orientation et des bords partages.
 - Catalogue acier enrichi avec plus de 200 profiles europeens courants : IPE, HEA, HEB, HEM, UPN, UPE, CHS, SHS, RHS et cornieres.
 - Sections parametriques filaires dans la GUI : I/H, U, L, tube circulaire et tube rectangulaire.
 - Section Builder HEXA : dessin 2D point par point sur grille, accrochage, fermeture de contour, analyse polygonale simple et insertion dans les sections du projet.
@@ -33,6 +37,10 @@
 
 ### Modifie
 
+- Le maillage structure quadrangulaire expose desormais la meme topologie de
+  cellules et de bords que le futur pipeline polygonal.
+- La formulation triangulaire `ASDShellT3` est reservee aux elements internes du
+  modele d'analyse ; le calcul des macro-surfaces polygonales reste desactive au PR1.
 - Rotation 3D rendue plus stable autour du centre du modele, avec verticale
   globale verrouillee et elevation bornee pour eviter le retournement de la vue.
 - Table des enveloppes etendue a toutes les composantes principales `N`, `Vy`,
@@ -47,6 +55,8 @@
 
 ### Validation
 
+- `python -m pytest -q` : 625 tests passes le 30 aout 2026.
+- `python -m ruff check` cible sur le maillage polygonal et ses contrats : OK.
 - `python -m pytest -q` : 620 tests passes le 25 aout 2026.
 - `python -m pytest -q` : 614 tests passes le 19 juillet 2026.
 - `python -m pytest -q` : 595 tests passes le 11 juillet 2026.

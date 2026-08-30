@@ -12,6 +12,7 @@ from core.model_data import (
     normalize_plate_mesh_mode,
     normalize_surface_formulation,
 )
+from core.surface_geometry import validate_surface_polygon
 
 if TYPE_CHECKING:
     from core.model_data import PlateRegionData, ProjectModel
@@ -34,6 +35,18 @@ class PlateMeshRecommendation:
     v_length: float
     min_divisions: int
     max_divisions: int = MAX_AUTO_PLATE_MESH_DIVISIONS
+
+
+@dataclass(frozen=True)
+class PolygonalPlateMeshRecommendation:
+    """Target sizing for a constrained triangular surface mesh."""
+
+    target_size: float
+    max_triangle_area: float
+    min_angle_deg: float
+    characteristic_length: float
+    divisions: int
+    mode: str
 
 
 def effective_plate_mesh_divisions(
@@ -76,6 +89,56 @@ def automatic_plate_mesh_recommendation(
         u_length=u_length,
         v_length=v_length,
         min_divisions=min_divisions,
+    )
+
+
+def polygonal_plate_mesh_recommendation(
+    project: "ProjectModel",
+    plate: "PlateRegionData",
+) -> PolygonalPlateMeshRecommendation:
+    """Return rotation-independent sizing for a polygonal plate region."""
+    points = [_node_xyz(project, tag) for tag in plate.corner_node_tags]
+    geometry = validate_surface_polygon(points)
+    projected = geometry.projected_points
+    perimeter = sum(
+        math.dist(projected[index], projected[(index + 1) % len(projected)])
+        for index in range(len(projected))
+    )
+    characteristic_length = max(4.0 * geometry.area / max(perimeter, 1e-12), 1e-9)
+    mode = normalize_plate_mesh_mode(getattr(plate, "mesh_mode", None))
+    thickness = _plate_thickness(project, plate)
+    formulation = _effective_formulation(project, plate)
+
+    if mode == PLATE_MESH_MODE_USER:
+        divisions = max(1, int(max(plate.mesh_nx, plate.mesh_ny)))
+        target_size = characteristic_length / float(divisions)
+    else:
+        divisions = _auto_min_divisions(
+            formulation,
+            characteristic_length,
+            thickness,
+        )
+        target_size = characteristic_length / float(divisions)
+        thickness_target = _thickness_target(
+            formulation,
+            characteristic_length,
+            thickness,
+        )
+        if thickness_target:
+            target_size = min(target_size, thickness_target)
+        target_size = max(
+            target_size,
+            characteristic_length / float(MAX_AUTO_PLATE_MESH_DIVISIONS),
+        )
+
+    target_size = max(float(target_size), 1e-9)
+    return PolygonalPlateMeshRecommendation(
+        target_size=target_size,
+        max_triangle_area=math.sqrt(3.0) * target_size * target_size / 4.0,
+        min_angle_deg=20.0,
+        characteristic_length=characteristic_length,
+        divisions=divisions,
+        mode=mode,
     )
 
 
