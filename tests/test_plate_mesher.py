@@ -60,6 +60,10 @@ def test_plate_2x2_creates_nine_nodes_and_four_surfaces() -> None:
 
     assert len(analysis_model.nodes) == 9
     assert len(analysis_model.surface_elements) == 4
+    mesh = _generated_mesh(analysis_model)
+    assert mesh.mesh_kind == "structured_quad"
+    assert len(mesh.cell_node_tags) == 4
+    assert set(mesh.boundary_node_tags) == {"12", "23", "34", "41"}
 
 
 def test_plate_4x3_creates_twenty_nodes_and_twelve_surfaces() -> None:

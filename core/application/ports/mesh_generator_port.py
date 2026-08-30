@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable, Mapping
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -12,12 +13,16 @@ class GeneratedPlateMeshPort(Protocol):
     """Minimal mesh data needed by application use cases."""
 
     plate_tag: int
-    node_tags: dict[tuple[int, int], int]
+    node_tags: Mapping[Hashable, int]
     surface_tags: list[int]
     mesh_nx: int
     mesh_ny: int
     u_values: tuple[float, ...]
     v_values: tuple[float, ...]
+    mesh_kind: str
+    cell_node_tags: tuple[tuple[int, ...], ...]
+    boundary_node_tags: Mapping[str, tuple[int, ...]]
+    target_size: float
 
 
 class MeshGeneratorPort(Protocol):

@@ -104,6 +104,9 @@ def _edge_node_tags(
     mesh_ny: int,
 ) -> list[int]:
     edge = str(support.edge).strip()
+    boundary_nodes = getattr(mesh, "boundary_node_tags", {}).get(edge)
+    if boundary_nodes:
+        return [int(tag) for tag in boundary_nodes]
     if edge == "12":
         return [mesh.node_tags[(i, 0)] for i in range(mesh_nx + 1)]
     if edge == "23":

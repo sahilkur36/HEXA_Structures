@@ -96,10 +96,12 @@ principal du modele. Le mode de maillage par
 defaut est automatique : HEXA calcule une taille d'element cible selon les
 dimensions de la plaque, son epaisseur et la formulation choisie. Un mode
 utilisateur permet de figer explicitement `mesh_nx` et `mesh_ny`. Les ouvertures,
-tremies et le maillage d'analyse des contours polygonaux ne sont pas pris en
-charge a ce stade. Une surface polygonale bloque donc explicitement le lancement
-du calcul au lieu d'etre approximee. Les cartes de contours plaque s'appuient sur
-le maillage quadrangulaire interne, regroupe par plaque macro pour le post-traitement.
+tremies et le calcul des contours polygonaux ne sont pas pris en charge a ce
+stade. Un mailleur triangulaire contraint experimental existe dans le noyau, mais
+il n'est pas encore branche au solveur : une surface polygonale bloque donc
+explicitement le lancement du calcul au lieu d'etre approximee. Les cartes de
+contours plaque s'appuient sur le maillage quadrangulaire interne, regroupe par
+plaque macro pour le post-traitement.
 
 ## Architecture
 
@@ -133,6 +135,7 @@ la compatibilité avec la GUI et le post-traitement existants.
 - `PyNiteFEA` pour le moteur par défaut
 - `OpenSeesPy >= 3.5` uniquement si vous souhaitez utiliser ce backend
 - `sectionproperties` uniquement pour les fonctions avancées du Section Builder
+- `cytriangle` uniquement pour le maillage contraint des surfaces polygonales
 
 ## Installation
 
@@ -149,7 +152,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Pour activer les fonctions avancées du Section Builder :
+Pour activer le Section Builder avancé et le mailleur polygonal contraint :
 
 ```bash
 pip install -r requirements-optional.txt

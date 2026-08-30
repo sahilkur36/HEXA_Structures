@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 
 from core.geometry.plate_intersections import (
@@ -27,12 +27,16 @@ class GeneratedPlateMesh:
     """Generated plate mesh."""
 
     plate_tag: int
-    node_tags: dict[tuple[int, int], int]
+    node_tags: dict[object, int]
     surface_tags: list[int]
     mesh_nx: int
     mesh_ny: int
     u_values: tuple[float, ...] = ()
     v_values: tuple[float, ...] = ()
+    mesh_kind: str = "structured_quad"
+    cell_node_tags: tuple[tuple[int, ...], ...] = ()
+    boundary_node_tags: dict[str, tuple[int, ...]] = field(default_factory=dict)
+    target_size: float = 0.0
 
 
 def generate_plate_region_mesh(
@@ -83,21 +87,31 @@ def generate_plate_region_mesh(
             node_lookup[_node_key((x, y, z))] = node.tag
 
     surface_tags: list[int] = []
+    cell_node_tags: list[tuple[int, ...]] = []
     surface_type = surface_type_from_formulation(formulation)
     for j in range(mesh_ny):
         for i in range(mesh_nx):
+            cell_nodes = (
+                node_tags[(i, j)],
+                node_tags[(i + 1, j)],
+                node_tags[(i + 1, j + 1)],
+                node_tags[(i, j + 1)],
+            )
             surface = target_project.add_surface_element(
-                (
-                    node_tags[(i, j)],
-                    node_tags[(i + 1, j)],
-                    node_tags[(i + 1, j + 1)],
-                    node_tags[(i, j + 1)],
-                ),
+                cell_nodes,
                 section_tag=plate.section_tag,
                 surface_type=surface_type,
                 formulation=formulation,
             )
             surface_tags.append(surface.tag)
+            cell_node_tags.append(cell_nodes)
+
+    boundary_node_tags = {
+        "12": tuple(node_tags[(i, 0)] for i in range(mesh_nx + 1)),
+        "23": tuple(node_tags[(mesh_nx, j)] for j in range(mesh_ny + 1)),
+        "34": tuple(node_tags[(i, mesh_ny)] for i in range(mesh_nx, -1, -1)),
+        "41": tuple(node_tags[(0, j)] for j in range(mesh_ny, -1, -1)),
+    }
 
     return GeneratedPlateMesh(
         plate_tag=plate.tag,
@@ -107,6 +121,20 @@ def generate_plate_region_mesh(
         mesh_ny=mesh_ny,
         u_values=tuple(u_values),
         v_values=tuple(v_values),
+        cell_node_tags=tuple(cell_node_tags),
+        boundary_node_tags=boundary_node_tags,
+        target_size=max(
+            max(
+                math.dist(corners[0], corners[1]),
+                math.dist(corners[3], corners[2]),
+            )
+            / max(mesh_nx, 1),
+            max(
+                math.dist(corners[1], corners[2]),
+                math.dist(corners[0], corners[3]),
+            )
+            / max(mesh_ny, 1),
+        ),
     )
 
 

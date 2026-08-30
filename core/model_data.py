@@ -29,9 +29,15 @@ LEGACY_SURFACE_FORMULATION_TYPES: dict[str, str] = {
     "Tri31": "shell",
 }
 
+INTERNAL_SURFACE_FORMULATION_TYPES: dict[str, str] = {
+    # Analysis-only formulation generated from polygonal user regions.
+    "ASDShellT3": "shell",
+}
+
 _KNOWN_SURFACE_FORMULATION_TYPES: dict[str, str] = {
     **SURFACE_FORMULATION_TYPES,
     **LEGACY_SURFACE_FORMULATION_TYPES,
+    **INTERNAL_SURFACE_FORMULATION_TYPES,
 }
 
 SURFACE_FORMULATION_INFOS: dict[str, str] = {
@@ -59,7 +65,11 @@ def surface_type_from_formulation(formulation: str | None) -> str:
 
 def surface_expected_node_count(formulation: str | None) -> int:
     """Handle surface expected node count."""
-    return 3 if normalize_surface_formulation(formulation) == "Tri31" else 4
+    return (
+        3
+        if normalize_surface_formulation(formulation) in {"Tri31", "ASDShellT3"}
+        else 4
+    )
 
 
 def normalize_plate_mesh_mode(mode: str | None) -> str:
@@ -693,7 +703,10 @@ class ProjectModel:
                 normalize_surface_formulation(formulation)
                 if formulation else section.surface_formulation
             )
-            if validation_formulation not in SURFACE_FORMULATION_TYPES:
+            if validation_formulation not in {
+                **SURFACE_FORMULATION_TYPES,
+                **INTERNAL_SURFACE_FORMULATION_TYPES,
+            }:
                 raise NotImplementedError(
                     f"La formulation plaque {validation_formulation} n'est pas disponible "
                     "pour les nouvelles surfaces."
